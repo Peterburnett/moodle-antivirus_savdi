@@ -28,7 +28,8 @@ defined('MOODLE_INTERNAL') || die();
 if ($ADMIN->fulltree) {
     $options = array(
         'unix' => new lang_string('conntypeunix', 'antivirus_savdi'),
-        'tcp'  => new lang_string('conntypetcp', 'antivirus_savdi'),
+        'localtcp'  => new lang_string('conntypelocaltcp', 'antivirus_savdi'),
+        'remotetcp' => new lang_string('conntyperemotetcp', 'antivirus_savdi')
     );
     $settings->add(new admin_setting_configselect('antivirus_savdi/conntype',
             new lang_string('conntype', 'antivirus_savdi'),

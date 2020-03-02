@@ -26,7 +26,8 @@
 $string['conntcp'] = 'TCP/IP host:port';
 $string['conntype'] = 'Connect to SAVDI daemon by';
 $string['conntypedescr'] = 'Whichever connection type you use, the SAVDI daemon must be local to your web server as uploaded files are not copied to a shared location for a remote daemon to access them.';
-$string['conntypetcp'] = 'TCP/IP connection';
+$string['conntypelocaltcp'] = 'Local TCP/IP connection';
+$string['conntyperemotetcp'] = 'Remote TCP/IP connection';
 $string['conntypeunix'] = 'Unix domain socket';
 $string['connunix'] = 'Path to Unix domain socket';
 $string['daemonerroractlikevirus'] = 'Treat files as infected';

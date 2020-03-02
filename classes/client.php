@@ -91,8 +91,11 @@ class client {
      */
     public function connect($type, $host) {
         $this->close();
-
-        $this->socket = stream_socket_client($type . '://' . $host, $errno, $errstr, 5);
+        // If type is not unix, it must be either remote or local tcp.
+        if ($type !== 'unix') {
+            $conntype = 'tcp';
+        }
+        $this->socket = stream_socket_client($conntype . '://' . $host, $errno, $errstr, 5);
         if (!$this->socket) {
             throw new moodle_exception('errorcantopen'.$type.'socket', 'antivirus_savdi', '', "$errstr ($errno)");
         }
@@ -169,6 +172,14 @@ class client {
         $expectnewline = false;
         $this->viruses = [];
         $this->errormsg = null;
+
+        // If remotetcp is enabled, all requests must be converted to SCANDATA.
+        if (get_config('antivirus_savdi', 'conntype') === 'remotetcp') {
+            $command = $this->convert_path_to_scandata($cmd, $path);
+            $this->sendmessage($command);
+        } else {
+            $this->sendmessage("$cmd " . urlencode($path));
+        }
 
         $this->sendmessage("$cmd " . urlencode($path));
         while (true) {
@@ -278,5 +289,79 @@ class client {
      */
     public function get_scan_message() {
         return $this->errormsg;
+    }
+
+    /**
+     * Take a scan command, and convert it into SCANDATA
+     *
+     * @param string $cmd the command to convert.
+     * @param string $path the file or directory to convert.
+     *
+     * @return string command string of format SCANDATA <size> <data>
+     */
+    private function convert_path_to_scandata($cmd, $path) {
+        $data = 'SCANDATA ';
+        $dataarray = [];
+        if ($cmd === 'SCANFILE') {
+            $dataarray[] = $this->convert_file_to_scandata($path);
+        } else {
+            // A directory will need to be scanned.
+            $recursive = $cmd === 'SCANDIRR' ? true : false;
+            $dataarray = array_merge($dataarray, $this->convert_dir_to_scandata($path, $recursive));
+        }
+
+        // Now generate scandata command from data.
+        $totalsize = 0;
+        $datastring = '';
+        foreach ($dataarray as $size => $data) {
+            $totalsize += $size;
+            $datastring .= $data;
+        }
+
+        return $data .= $totalsize . ' ' . $datastring;
+    }
+
+    /**
+     * Reads in a file, and converts it to a keyed array of size => data.
+     *
+     * @param string $file the file to convert.
+     *
+     * @return array an array of size => data for a file.
+     */
+    private function convert_file_to_scandata($file) {
+        $filehandle = fopen($file, "r");
+        $streamsize = filesize($file);
+        $datastream = fread($filehandle, $streamsize);
+        return array($streamsize => $datastream);
+    }
+
+    /**
+     * Converts a directory to scandata for remote use.
+     * @param string $path the path to convert.
+     * @param bool $recursive whether this should convert all directories recursively.
+     *
+     * @return array an array of size=>data for each file inside the directory.
+     */
+    private function convert_dir_to_scandata($path, $recursive) {
+        $return = [];
+
+        // Get all files, and all dirs seperately.
+        $dirs = glob($path, '/*', GLOB_ONLYDIR);
+
+        if ($recursive) {
+            foreach ($dirs as $dir) {
+                $return = array_merge($return, $this->convert_dir_to_scandata($dir, $recursive));
+            }
+        }
+
+        // Scan all files in dir.
+        $files = scandir($path);
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                $return = array_merge($return, $this->convert_file_to_scandata($file));
+            }
+        }
+
+        return $return;
     }
 }
