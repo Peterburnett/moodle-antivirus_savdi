@@ -181,7 +181,6 @@ class client {
             $this->sendmessage("$cmd " . urlencode($path));
         }
 
-        $this->sendmessage("$cmd " . urlencode($path));
         while (true) {
             $msg = $this->getmessage();
             if ($msg === null) {
@@ -300,10 +299,10 @@ class client {
      * @return string command string of format SCANDATA <size> <data>
      */
     private function convert_path_to_scandata($cmd, $path) {
-        $data = 'SCANDATA ';
+        $command = 'SCANDATA ';
         $dataarray = [];
         if ($cmd === 'SCANFILE') {
-            $dataarray[] = $this->convert_file_to_scandata($path);
+            $dataarray = $this->convert_file_to_scandata($path);
         } else {
             // A directory will need to be scanned.
             $recursive = $cmd === 'SCANDIRR' ? true : false;
@@ -313,12 +312,12 @@ class client {
         // Now generate scandata command from data.
         $totalsize = 0;
         $datastring = '';
-        foreach ($dataarray as $size => $data) {
+        foreach ($dataarray as $size => $datastream) {
             $totalsize += $size;
-            $datastring .= $data;
+            $datastring .= $datastream;
         }
 
-        return $data .= $totalsize . ' ' . $datastring;
+        return $command . $totalsize . PHP_EOL . $datastring;
     }
 
     /**

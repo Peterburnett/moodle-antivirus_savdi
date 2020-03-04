@@ -59,8 +59,10 @@ class scanner extends \core\antivirus\scanner {
      */
     public function is_configured() {
         $conntype = $this->get_config('conntype');
-        if ($conntype === 'tcp' || $conntype === 'unix') {
+        if ($conntype === 'unix') {
             return !empty($this->get_config('conn' . $conntype));
+        } else {
+            return !empty($this->get_config('conn' . 'tcp'));
         }
         return false;
     }
@@ -73,7 +75,11 @@ class scanner extends \core\antivirus\scanner {
     protected function get_client() {
         if (!$this->client) {
             $conntype = $this->get_config('conntype');
-            $connhost = $this->get_config('conn' . $conntype);
+            if ($conntype === 'unix') {
+                $connhost = $this->get_config('conn' . $conntype);
+            } else {
+                $connhost = $this->get_config('conn' . 'tcp');
+            }
             $client = new client();
             $client->connect($conntype, $connhost);
             $this->client = $client;
